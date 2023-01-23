@@ -1,13 +1,15 @@
 USE [Monitoring]
 GO
 
-/****** Object:  StoredProcedure [dbo].[sp_VPN_ConnectionPerDate]    Script Date: 23.01.2023 01:06:29 ******/
+/****** Object:  StoredProcedure [dbo].[sp_VPN_ConnectionPerDate]    Script Date: 23.01.2023 12:28:17 ******/
 SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- 2023-01-23 - ER - initiale Version
+-- 2023-01-23 - ER - Delta-Berechnung
 CREATE PROCEDURE [dbo].[sp_VPN_ConnectionPerDate]
 AS
 BEGIN 
@@ -58,11 +60,38 @@ SELECT DateValue,isnull([ID],0) as [ID]
       ,[Checksum]	
 FROM DateList as d
 left outer join [dbo].[VPN_ConnectionData] as v
-on d.DateValue between v.[ConnectionStartTime] and v.[CurrentDate]
+on d.DateValue between DateAdd(mi,5,v.[ConnectionStartTime]) and DateAdd(mi,5,v.[CurrentDate])
 Where [DateValue] not in  (Select [DateValue] from [dbo].[VPN_ConnectionPerDate] where [ID] <> 0)
 order by DAteValue desc
 	OPTION (MAXRECURSION 0)
 
+-- Delta Berechnung
+;With CTE as (
+SELECT [DateValue], DATEADD(MINUTE, -5, [DateValue]) as [CompareDate]
+      ,[ID]
+      ,[TotalBytesIn]
+      ,[TotalBytesOut]
+  FROM [Monitoring].[dbo].[VPN_ConnectionPerDate]
+  where ID <> 0),
+  UpdateQuery as (
+
+
+  Select cte1.[DateValue], cte1.[CompareDate], cte1.ID, cte1.[TotalBytesIn] - cte2.[TotalBytesIn] as [TotalBytesIn_Difference]  
+  ,  cte1.[TotalBytesOut] - cte2.[TotalBytesOut] as [TotalBytesOut_Difference] 
+  from CTE as cte1  left outer join CTE as cte2
+  on cte1.CompareDate = cte2.[DateValue])
+
+  Update t
+  Set t.[TotalBytesIn_Difference] = s.[TotalBytesIn_Difference],
+  t.[TotalBytesOut_Difference] = s.[TotalBytesOut_Difference]
+  from UpdateQuery as s
+  inner join [dbo].[VPN_ConnectionPerDate] as t
+  on s.[DateValue] = t.[DateValue]
+
+  Update [dbo].[VPN_ConnectionPerDate]
+  Set [TotalBytesIn_Difference] = 0,
+  [TotalBytesOut_Difference] = 0
+  Where [TotalBytesIn_Difference] is null and [TotalBytesOut_Difference] is null
 
 End 
 GO

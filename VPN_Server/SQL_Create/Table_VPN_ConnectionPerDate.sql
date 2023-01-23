@@ -1,7 +1,7 @@
 USE [Monitoring]
 GO
 
-/****** Object:  Table [dbo].[VPN_ConnectionPerDate]    Script Date: 23.01.2023 01:06:02 ******/
+/****** Object:  Table [dbo].[VPN_ConnectionPerDate]    Script Date: 23.01.2023 12:27:38 ******/
 SET ANSI_NULLS ON
 GO
 
@@ -24,7 +24,9 @@ CREATE TABLE [dbo].[VPN_ConnectionPerDate](
 	[ClientExternalAddress] [nvarchar](255) NULL,
 	[ClientIPv4Address] [nvarchar](255) NULL,
 	[ClientIPv6Address] [nvarchar](255) NULL,
-	[Checksum] [int] NULL
+	[Checksum] [int] NULL,
+	[TotalBytesIn_Difference] [bigint] NULL,
+	[TotalBytesOut_Difference] [bigint] NULL
 ) ON [PRIMARY]
 GO
 
